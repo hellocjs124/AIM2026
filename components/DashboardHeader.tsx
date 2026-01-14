@@ -22,10 +22,10 @@ const DashboardHeader: React.FC<Props> = ({ metrics, assets, currentDateStr }) =
   const investPercent = (investAssets / totalAssets) * 100;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
       
       {/* 1. Total Assets Control Tower */}
-      <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-xl relative overflow-hidden backdrop-blur-sm shadow-lg col-span-1 lg:col-span-2 group">
+      <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-xl relative overflow-hidden backdrop-blur-sm shadow-lg col-span-1 md:col-span-2 group">
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
           <Wallet size={120} />
         </div>
@@ -37,7 +37,7 @@ const DashboardHeader: React.FC<Props> = ({ metrics, assets, currentDateStr }) =
         </div>
         
         <div className="flex items-baseline gap-3 mt-2">
-          <span className="text-5xl lg:text-6xl font-bold text-white tracking-tight font-mono">
+          <span className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight font-mono">
             {formatCurrency(totalAssets)}
           </span>
         </div>
@@ -77,7 +77,7 @@ const DashboardHeader: React.FC<Props> = ({ metrics, assets, currentDateStr }) =
              <span className={`font-mono ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>{yieldAmount > 0 ? '+' : ''}{formatCurrency(yieldAmount)}</span>
            </div>
            <div className="flex justify-between text-xs text-slate-400">
-             <span>Gap to Goal ({formatCurrency(projectedTarget)})</span>
+             <span>Gap to Goal</span>
              <span className="text-slate-200 font-mono">{formatCurrency(gapToTarget)}</span>
            </div>
            

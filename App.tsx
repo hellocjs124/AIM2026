@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Asset, DashboardMetrics } from './types';
-import { INITIAL_ASSETS, BASE_CAPITAL_2026, TARGET_ANNUAL_RETURN_PERCENT } from './constants';
+import { BASE_CAPITAL_2026, TARGET_ANNUAL_RETURN_PERCENT } from './constants';
 import { getDaysElapsed, getDynamicSimulatedDate, formatDateString } from './utils/calculations';
+import { loadAssets, saveAssets } from './utils/storage';
+import { parsePortfolioFile } from './utils/excel';
 
 // Components
 import DashboardHeader from './components/DashboardHeader';
@@ -11,8 +13,14 @@ import AddAssetModal from './components/AddAssetModal';
 import { PlusCircle } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
+  // Initialize state from Storage
+  const [assets, setAssets] = useState<Asset[]>(() => loadAssets());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Persistence Effect
+  useEffect(() => {
+    saveAssets(assets);
+  }, [assets]);
 
   // Dynamic Date Logic (Simulates Current Day in 2026)
   const currentDate = useMemo(() => getDynamicSimulatedDate(), []);
@@ -59,15 +67,64 @@ const App: React.FC = () => {
     setAssets(prev => [...prev, { ...newAsset, id: nextId }]);
   };
 
+  const handleImportAssets = async (file: File) => {
+    try {
+      const importedData = await parsePortfolioFile(file);
+      
+      setAssets(prev => {
+        const newAssets = [...prev];
+        let addedCount = 0;
+        let updatedCount = 0;
+
+        importedData.forEach(imported => {
+           if (!imported.code || imported.amount === undefined) return;
+
+           // Smart Merge: Check if code exists
+           const existingIndex = newAssets.findIndex(a => a.code === imported.code);
+           
+           if (existingIndex >= 0) {
+             // Update amount
+             newAssets[existingIndex] = {
+               ...newAssets[existingIndex],
+               amount: imported.amount,
+               // Optionally update name if provided in import
+               name: imported.name || newAssets[existingIndex].name
+             };
+             updatedCount++;
+           } else {
+             // Add new
+             const nextId = Math.max(...newAssets.map(a => a.id), 0) + 1 + addedCount;
+             newAssets.push({
+               id: nextId,
+               category: imported.category || "机动",
+               code: imported.code,
+               name: imported.name || "Unknown Asset",
+               amount: imported.amount,
+               type: imported.type || "Imported"
+             } as Asset);
+             addedCount++;
+           }
+        });
+
+        alert(`Import Successful!\nUpdated: ${updatedCount}\nAdded: ${addedCount}`);
+        return newAssets;
+      });
+
+    } catch (error) {
+      console.error(error);
+      alert("Failed to parse file. Ensure it is a valid Excel/CSV file.");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-300 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-300 font-sans selection:bg-indigo-500/30 pb-20 sm:pb-0">
       
       {/* Top Navigation / Brand */}
-      <nav className="border-b border-slate-800 bg-slate-950/50 backdrop-blur sticky top-0 z-40">
+      <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <div className="flex justify-between items-center h-16">
               <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 bg-indigo-500 rounded flex items-center justify-center text-white font-bold">A</div>
+                 <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20">A</div>
                  <span className="text-xl font-bold text-white tracking-tight">AlphaStream <span className="text-slate-500 text-sm font-normal">2026</span></span>
               </div>
               <div className="flex items-center gap-4">
@@ -79,7 +136,8 @@ const App: React.FC = () => {
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow shadow-indigo-500/20"
                  >
                     <PlusCircle size={16} />
-                    <span>Add Asset</span>
+                    <span className="hidden sm:inline">Add Asset</span>
+                    <span className="sm:hidden">Add</span>
                  </button>
               </div>
            </div>
@@ -87,7 +145,7 @@ const App: React.FC = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         
         {/* Header Stats */}
         <DashboardHeader 
@@ -104,6 +162,7 @@ const App: React.FC = () => {
           assets={assets} 
           onUpdateAsset={handleUpdateAsset} 
           onDeleteAsset={handleDeleteAsset} 
+          onImportAssets={handleImportAssets}
         />
 
       </main>
